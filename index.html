@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Residents Fee Tracker</title>
+<style>
+  :root {
+    --blue-bg: #eaf4fb;
+    --blue-mid: #cfe6f6;
+    --blue-dark: #2a6f9e;
+    --blue-header: #d7ecf9;
+    --green: #2e8b57;
+    --green-bg: #e3f5ea;
+    --red: #c0392b;
+    --red-bg: #fbe6e3;
+    --amber: #b07d00;
+    --amber-bg: #fdf3dc;
+    --text: #22333f;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: var(--blue-bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 16px;
+    font-size: 16px;
+  }
+  .app { max-width: 760px; margin: 0 auto; }
+  header.app-title {
+    background: var(--blue-dark);
+    color: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  header.app-title { display: flex; align-items: center; gap: 14px; }
+  header.app-title .logo { flex: 0 0 auto; }
+  header.app-title .logo svg { display: block; }
+  header.app-title h1 { font-size: 1.4rem; }
+  header.app-title p { font-size: 0.9rem; opacity: 0.9; }
+  section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(42, 111, 158, 0.12);
+  }
+  h2 {
+    font-size: 1.1rem;
+    color: var(--blue-dark);
+    margin-bottom: 4px;
+  }
+  .section-sub { font-size: 0.85rem; color: #5b7284; margin-bottom: 12px; }
+
+  /* Summary */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .summary-box {
+    background: var(--blue-header);
+    border-radius: 10px;
+    text-align: center;
+    padding: 12px 6px;
+  }
+  .summary-box .num { font-size: 1.6rem; font-weight: 700; }
+  .summary-box .label { font-size: 0.8rem; color: #4a6172; }
+  .summary-box.paid { background: var(--green-bg); }
+  .summary-box.paid .num { color: var(--green); }
+  .summary-box.unpaid { background: var(--red-bg); }
+  .summary-box.unpaid .num { color: var(--red); }
+  .summary-box.late { background: var(--amber-bg); }
+  .summary-box.late .num { color: var(--amber); }
+
+  /* House list */
+  .list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .filter-btn {
+    border: 2px solid var(--blue-dark);
+    background: #fff;
+    color: var(--blue-dark);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .filter-btn.active { background: var(--blue-dark); color: #fff; }
+  ul.houses { list-style: none; }
+  ul.houses li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    border: 1px solid var(--blue-mid);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #f7fbfe;
+  }
+  ul.houses li button.house-row {
+    all: unset;
+    cursor: pointer;
+    flex: 1 1 220px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .house-name { font-weight: 700; font-size: 1rem; }
+  .house-owner { font-size: 0.85rem; color: #5b7284; }
+  .fee { font-size: 0.85rem; color: #5b7284; }
+  .deadline {
+    font-size: 0.85rem;
+    color: var(--blue-dark);
+    background: var(--blue-header);
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+  .status-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 14px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+  .status-badge.paid { background: var(--green-bg); color: var(--green); }
+  .status-badge.unpaid { background: var(--red-bg); color: var(--red); }
+  .status-badge.late { background: var(--amber-bg); color: var(--amber); }
+  .hint { font-size: 0.8rem; color: #5b7284; margin-top: 8px; }
+
+  /* Reminder */
+  .reminder-box {
+    background: #f7fbfe;
+    border: 1px dashed var(--blue-dark);
+    border-radius: 10px;
+    padding: 14px;
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+  }
+  .reminder-actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .action-btn {
+    border: none;
+    background: var(--blue-dark);
+    color: #fff;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .action-btn.secondary { background: #fff; color: var(--blue-dark); border: 2px solid var(--blue-dark); }
+  .copy-note { font-size: 0.85rem; color: var(--green); font-weight: 600; margin-left: 4px; align-self: center; }
+  .all-paid { color: var(--green); font-weight: 600; padding: 8px 0; }
+
+  @media (max-width: 480px) {
+    body { padding: 10px; font-size: 15px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    ul.houses li button.house-row { flex: 1 1 100%; }
+    .status-badge, .deadline { order: 2; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-title">
+    <div class="logo" aria-hidden="true">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="22" fill="#ffffff"/>
+        <path d="M24 10 L40 24 H35 V36 H13 V24 H8 Z" fill="#2a6f9e"/>
+        <rect x="20" y="27" width="8" height="9" rx="1" fill="#eaf4fb"/>
+        <circle cx="31.5" cy="30" r="5.5" fill="#f0b429" stroke="#2a6f9e" stroke-width="1.5"/>
+        <text x="31.5" y="33" text-anchor="middle" font-size="8" font-weight="bold" fill="#2a6f9e" font-family="Arial, sans-serif">R</text>
+      </svg>
+    </div>
+    <div class="title-text">
+      <h1>Residents Fee Tracker</h1>
+    <p>Taman Melur Heights &mdash; monthly maintenance fee (RM80/house)</p>
+    </div>
+  </header>
+
+  <!-- Section 1: House List -->
+  <section id="section-houses">
+    <h2>1. House List</h2>
+    <p class="section-sub">Tap a house to mark it paid or unpaid. The deadline shown is this month's payment deadline.</p>
+    <div class="list-controls">
+      <button id="btn-show-all" class="filter-btn active" onclick="setFilter('all')">Show all houses</button>
+      <button id="btn-show-unpaid" class="filter-btn" onclick="setFilter('unpaid')">Show unpaid only</button>
+    </div>
+    <ul class="houses" id="house-list"></ul>
+    <p class="hint" id="filter-note"></p>
+  </section>
+
+  <!-- Section 2: Payment Summary -->
+  <section id="section-summary">
+    <h2>2. Payment Summary</h2>
+    <p class="section-sub">This month at a glance. "Late" means unpaid houses past the deadline.</p>
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="num" id="count-total">0</div>
+        <div class="label">Total houses</div>
+      </div>
+      <div class="summary-box paid">
+        <div class="num" id="count-paid">0</div>
+        <div class="label">Paid</div>
+      </div>
+      <div class="summary-box unpaid">
+        <div class="num" id="count-unpaid">0</div>
+        <div class="label">Unpaid</div>
+      </div>
+      <div class="summary-box late">
+        <div class="num" id="count-late">0</div>
+        <div class="label">Late</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Reminder Draft -->
+  <section id="section-reminder">
+    <h2>3. Reminder Draft</h2>
+    <p class="section-sub">A ready-made message for houses that have not paid yet.</p>
+    <div class="reminder-box" id="reminder-text"></div>
+    <div class="reminder-actions">
+      <button class="action-btn" onclick="copyReminder()">Copy reminder</button>
+      <button class="action-btn secondary" onclick="readReminder()">Read on screen</button>
+      <span class="copy-note" id="copy-note" hidden>Copied!</span>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ---- Sample data (Malaysia-specific, fictional) ----
+  const FEE = 80; // RM per house, per month
+  const houses = [
+    { id: 1, name: "No. 12, Jalan Melur 3", owner: "Encik Ahmad bin Ismail", paid: true },
+    { id: 2, name: "No. 7, Jalan Melur 5", owner: "Puan Siti Aminah", paid: false },
+    { id: 3, name: "No. 21, Jalan Cempaka 2", owner: "Mr. Rajesh Kumar", paid: false }
+  ];
+
+  // This month's deadline: the 10th of the current month
+  const now = new Date();
+  const deadline = new Date(now.getFullYear(), now.getMonth(), 10);
+  const deadlineStr = deadline.toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric" });
+  const isPastDeadline = now > new Date(now.getFullYear(), now.getMonth(), 10, 23, 59, 59);
+
+  let filter = "all";
+
+  function statusOf(h) {
+    if (h.paid) return "paid";
+    return isPastDeadline ? "late" : "unpaid";
+  }
+
+  function setFilter(f) {
+    filter = f;
+    document.getElementById("btn-show-all").classList.toggle("active", f === "all");
+    document.getElementById("btn-show-unpaid").classList.toggle("active", f === "unpaid");
+    render();
+  }
+
+  function togglePaid(id) {
+    const h = houses.find(x => x.id === id);
+    if (h) h.paid = !h.paid;
+    render();
+  }
+
+  function render() {
+    // House list
+    const list = document.getElementById("house-list");
+    list.innerHTML = "";
+    let shown = 0;
+    houses.forEach(h => {
+      const st = statusOf(h);
+      if (filter === "unpaid" && h.paid) return;
+      shown++;
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.className = "house-row";
+      btn.title = "Tap to mark " + (h.paid ? "unpaid" : "paid");
+      const name = document.createElement("span");
+      name.className = "house-name";
+      name.textContent = h.name;
+      const owner = document.createElement("span");
+      owner.className = "house-owner";
+      owner.textContent = h.owner + " — RM" + FEE + " per month";
+      btn.appendChild(name);
+      btn.appendChild(owner);
+
+      const dl = document.createElement("span");
+      dl.className = "deadline";
+      dl.textContent = "Deadline: " + deadlineStr;
+
+      const badge = document.createElement("span");
+      badge.className = "status-badge " + st;
+      badge.textContent = st === "paid" ? "PAID ✓" : (st === "late" ? "LATE!" : "UNPAID");
+
+      li.appendChild(btn);
+      li.appendChild(dl);
+      li.appendChild(badge);
+      list.appendChild(li);
+    });
+    if (shown === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No houses to show — every house in this view is paid.";
+      list.appendChild(li);
+    }
+    document.getElementById("filter-note").textContent =
+      filter === "unpaid" ? "Showing unpaid houses only. Paid houses are hidden." : "Showing all houses.";
+
+    // Summary
+    const total = houses.length;
+    const paid = houses.filter(h => h.paid).length;
+    const unpaid = total - paid;
+    const late = houses.filter(h => statusOf(h) === "late").length;
+    document.getElementById("count-total").textContent = total;
+    document.getElementById("count-paid").textContent = paid;
+    document.getElementById("count-unpaid").textContent = unpaid;
+    document.getElementById("count-late").textContent = late;
+
+    // Reminder
+    const unpaidHouses = houses.filter(h => !h.paid);
+    const box = document.getElementById("reminder-text");
+    if (unpaidHouses.length === 0) {
+      box.textContent = "All houses have paid this month. No reminder needed. Terima kasih!";
+    } else {
+      const names = unpaidHouses.map(h => h.name).join(", ");
+      box.textContent =
+        "Assalamualaikum and good day,\n\n" +
+        "Dear residents of " + names + ",\n\n" +
+        "Our records show that the monthly maintenance fee of RM" + FEE +
+        " for " + deadline.toLocaleDateString("en-MY", { month: "long", year: "numeric" }) +
+        " has not been received yet. The payment deadline was " + deadlineStr + ".\n\n" +
+        "Kindly make your payment to the treasurer as soon as possible. Thank you for your cooperation.\n\n" +
+        "— Treasurer, Taman Melur Heights Residents Association";
+    }
+  }
+
+  function copyReminder() {
+    const text = document.getElementById("reminder-text").textContent;
+    const note = document.getElementById("copy-note");
+    const done = () => { note.hidden = false; setTimeout(() => { note.hidden = true; }, 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    done();
+  }
+
+  function readReminder() {
+    const box = document.getElementById("reminder-text");
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    box.style.background = "#fdf3dc";
+    setTimeout(() => { box.style.background = ""; }, 1500);
+  }
+
+  render();
+</script>
+</body>
+</html>
