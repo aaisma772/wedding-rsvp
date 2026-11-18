@@ -3,374 +3,315 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Residents Fee Tracker</title>
+<title>Kenduri RSVP</title>
 <style>
-  :root {
-    --blue-bg: #eaf4fb;
-    --blue-mid: #cfe6f6;
-    --blue-dark: #2a6f9e;
-    --blue-header: #d7ecf9;
-    --green: #2e8b57;
-    --green-bg: #e3f5ea;
-    --red: #c0392b;
-    --red-bg: #fbe6e3;
-    --amber: #b07d00;
-    --amber-bg: #fdf3dc;
-    --text: #22333f;
-    --card: #ffffff;
-  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-    background: var(--blue-bg);
-    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #eaf6e6;
+    color: #2e3d2b;
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
     line-height: 1.5;
-    padding: 16px;
-    font-size: 16px;
+    position: relative;
   }
-  .app { max-width: 760px; margin: 0 auto; }
-  header.app-title {
-    background: var(--blue-dark);
-    color: #fff;
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 16px;
+  /* Wedding background decoration: soft fixed florals */
+  .bg-deco {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
   }
-  header.app-title { display: flex; align-items: center; gap: 14px; }
-  header.app-title .logo { flex: 0 0 auto; }
-  header.app-title .logo svg { display: block; }
-  header.app-title h1 { font-size: 1.4rem; }
-  header.app-title p { font-size: 0.9rem; opacity: 0.9; }
+  .bg-deco .corner { position: absolute; font-size: 2.6rem; opacity: 0.35; }
+  .bg-deco .tl { top: 8px; left: 10px; }
+  .bg-deco .tr { top: 8px; right: 10px; transform: scaleX(-1); }
+  .bg-deco .bl { bottom: 8px; left: 10px; transform: scaleY(-1); }
+  .bg-deco .br { bottom: 8px; right: 10px; transform: scale(-1); }
+  .bg-deco .ring1, .bg-deco .ring2 {
+    position: absolute;
+    border: 2px solid rgba(196, 160, 90, 0.25);
+    border-radius: 50%;
+    width: 220px; height: 220px;
+  }
+  .bg-deco .ring1 { top: -70px; right: -60px; }
+  .bg-deco .ring2 { bottom: -80px; left: -70px; }
+  .bg-deco .ring2::after {
+    content: "";
+    position: absolute;
+    top: 40px; left: 40px;
+    width: 140px; height: 140px;
+    border: 2px solid rgba(196, 160, 90, 0.25);
+    border-radius: 50%;
+  }
+  body > header, body > section { position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 { font-size: 1.5rem; color: #3a6b35; }
+  header p { font-size: 0.95rem; color: #5a7355; }
+  .flourish { color: #c4a05a; letter-spacing: 6px; font-size: 1rem; }
   section {
-    background: var(--card);
-    border-radius: 12px;
+    background: #ffffff;
+    border-radius: 14px;
     padding: 16px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 4px rgba(42, 111, 158, 0.12);
+    box-shadow: 0 2px 6px rgba(58, 107, 53, 0.12);
   }
-  h2 {
-    font-size: 1.1rem;
-    color: var(--blue-dark);
-    margin-bottom: 4px;
-  }
-  .section-sub { font-size: 0.85rem; color: #5b7284; margin-bottom: 12px; }
-
-  /* Summary */
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-  .summary-box {
-    background: var(--blue-header);
-    border-radius: 10px;
-    text-align: center;
-    padding: 12px 6px;
-  }
-  .summary-box .num { font-size: 1.6rem; font-weight: 700; }
-  .summary-box .label { font-size: 0.8rem; color: #4a6172; }
-  .summary-box.paid { background: var(--green-bg); }
-  .summary-box.paid .num { color: var(--green); }
-  .summary-box.unpaid { background: var(--red-bg); }
-  .summary-box.unpaid .num { color: var(--red); }
-  .summary-box.late { background: var(--amber-bg); }
-  .summary-box.late .num { color: var(--amber); }
-
-  /* House list */
-  .list-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .filter-btn {
-    border: 2px solid var(--blue-dark);
-    background: #fff;
-    color: var(--blue-dark);
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .filter-btn.active { background: var(--blue-dark); color: #fff; }
-  ul.houses { list-style: none; }
-  ul.houses li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    border: 1px solid var(--blue-mid);
-    border-radius: 10px;
+  section h2 { font-size: 1.15rem; color: #3a6b35; margin-bottom: 10px; }
+  label { display: block; font-size: 0.9rem; margin: 10px 0 4px; font-weight: 600; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
     padding: 10px 12px;
-    margin-bottom: 10px;
-    background: #f7fbfe;
-  }
-  ul.houses li button.house-row {
-    all: unset;
-    cursor: pointer;
-    flex: 1 1 220px;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .house-name { font-weight: 700; font-size: 1rem; }
-  .house-owner { font-size: 0.85rem; color: #5b7284; }
-  .fee { font-size: 0.85rem; color: #5b7284; }
-  .deadline {
-    font-size: 0.85rem;
-    color: var(--blue-dark);
-    background: var(--blue-header);
-    border-radius: 6px;
-    padding: 4px 10px;
-    white-space: nowrap;
-  }
-  .status-badge {
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 14px;
-    padding: 5px 12px;
-    white-space: nowrap;
-  }
-  .status-badge.paid { background: var(--green-bg); color: var(--green); }
-  .status-badge.unpaid { background: var(--red-bg); color: var(--red); }
-  .status-badge.late { background: var(--amber-bg); color: var(--amber); }
-  .hint { font-size: 0.8rem; color: #5b7284; margin-top: 8px; }
-
-  /* Reminder */
-  .reminder-box {
-    background: #f7fbfe;
-    border: 1px dashed var(--blue-dark);
+    font-size: 1rem;
+    border: 2px solid #cfe3c8;
     border-radius: 10px;
-    padding: 14px;
-    white-space: pre-wrap;
-    font-size: 0.95rem;
+    background: #f7fcf4;
   }
-  .reminder-actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-  .action-btn {
-    border: none;
-    background: var(--blue-dark);
+  input:focus { outline: none; border-color: #7db87a; }
+  .choice-row { display: flex; gap: 10px; margin-top: 4px; }
+  .choice {
+    flex: 1;
+    padding: 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border: 2px solid #cfe3c8;
+    border-radius: 10px;
+    background: #f7fcf4;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .choice.selected-yes { background: #bfe3b6; border-color: #4c8f45; color: #22501e; }
+  .choice.selected-no { background: #f3d3d0; border-color: #b35a52; color: #6e2a25; }
+  .submit-btn {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px;
+    font-size: 1.1rem;
+    font-weight: 700;
     color: #fff;
-    border-radius: 8px;
-    padding: 9px 18px;
-    font-size: 0.9rem;
-    font-weight: 600;
+    background: #4c8f45;
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
   }
-  .action-btn.secondary { background: #fff; color: var(--blue-dark); border: 2px solid var(--blue-dark); }
-  .copy-note { font-size: 0.85rem; color: var(--green); font-weight: 600; margin-left: 4px; align-self: center; }
-  .all-paid { color: var(--green); font-weight: 600; padding: 8px 0; }
-
-  @media (max-width: 480px) {
-    body { padding: 10px; font-size: 15px; }
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
-    ul.houses li button.house-row { flex: 1 1 100%; }
-    .status-badge, .deadline { order: 2; }
+  .submit-btn:active { background: #3a6b35; }
+  .chosen-note { margin-top: 10px; font-weight: 600; min-height: 1.4em; }
+  .big-count {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #3a6b35;
+    text-align: center;
+  }
+  .big-count.kids { color: #b07d3a; font-size: 2rem; }
+  .kids-box {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 2px dashed #e4efdf;
+  }
+  .count-note { text-align: center; font-size: 0.95rem; color: #5a7355; }
+  ul { list-style: none; }
+  li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 4px;
+    border-bottom: 1px solid #e4efdf;
+  }
+  li:last-child { border-bottom: none; }
+  .g-name { font-weight: 600; }
+  .g-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-right: 8px;
+  }
+  .yes { background: #d8f0d0; color: #2c5e26; }
+  .no { background: #f6dcd9; color: #7c352f; }
+  .g-count { color: #5a7355; white-space: nowrap; }
+  .section-sub { font-size: 0.9rem; color: #5a7355; }
+  .link-btn {
+    display: block;
+    margin: 14px auto 0;
+    background: none;
+    border: none;
+    color: #5a7355;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    cursor: pointer;
   }
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="app-title">
-    <div class="logo" aria-hidden="true">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="22" fill="#ffffff"/>
-        <path d="M24 10 L40 24 H35 V36 H13 V24 H8 Z" fill="#2a6f9e"/>
-        <rect x="20" y="27" width="8" height="9" rx="1" fill="#eaf4fb"/>
-        <circle cx="31.5" cy="30" r="5.5" fill="#f0b429" stroke="#2a6f9e" stroke-width="1.5"/>
-        <text x="31.5" y="33" text-anchor="middle" font-size="8" font-weight="bold" fill="#2a6f9e" font-family="Arial, sans-serif">R</text>
-      </svg>
-    </div>
-    <div class="title-text">
-      <h1>Residents Fee Tracker</h1>
-    <p>Taman Melur Heights &mdash; monthly maintenance fee (RM80/house)</p>
-    </div>
-  </header>
 
-  <!-- Section 1: House List -->
-  <section id="section-houses">
-    <h2>1. House List</h2>
-    <p class="section-sub">Tap a house to mark it paid or unpaid. The deadline shown is this month's payment deadline.</p>
-    <div class="list-controls">
-      <button id="btn-show-all" class="filter-btn active" onclick="setFilter('all')">Show all houses</button>
-      <button id="btn-show-unpaid" class="filter-btn" onclick="setFilter('unpaid')">Show unpaid only</button>
-    </div>
-    <ul class="houses" id="house-list"></ul>
-    <p class="hint" id="filter-note"></p>
-  </section>
-
-  <!-- Section 2: Payment Summary -->
-  <section id="section-summary">
-    <h2>2. Payment Summary</h2>
-    <p class="section-sub">This month at a glance. "Late" means unpaid houses past the deadline.</p>
-    <div class="summary-grid">
-      <div class="summary-box">
-        <div class="num" id="count-total">0</div>
-        <div class="label">Total houses</div>
-      </div>
-      <div class="summary-box paid">
-        <div class="num" id="count-paid">0</div>
-        <div class="label">Paid</div>
-      </div>
-      <div class="summary-box unpaid">
-        <div class="num" id="count-unpaid">0</div>
-        <div class="label">Unpaid</div>
-      </div>
-      <div class="summary-box late">
-        <div class="num" id="count-late">0</div>
-        <div class="label">Late</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Section 3: Reminder Draft -->
-  <section id="section-reminder">
-    <h2>3. Reminder Draft</h2>
-    <p class="section-sub">A ready-made message for houses that have not paid yet.</p>
-    <div class="reminder-box" id="reminder-text"></div>
-    <div class="reminder-actions">
-      <button class="action-btn" onclick="copyReminder()">Copy reminder</button>
-      <button class="action-btn secondary" onclick="readReminder()">Read on screen</button>
-      <span class="copy-note" id="copy-note" hidden>Copied!</span>
-    </div>
-  </section>
+<!-- Wedding background decoration -->
+<div class="bg-deco" aria-hidden="true">
+  <span class="corner tl">🌸🤍🌸</span>
+  <span class="corner tr">🌸🤍🌸</span>
+  <span class="corner bl">🌸🤍🌸</span>
+  <span class="corner br">🌸🤍🌸</span>
+  <span class="ring1"></span>
+  <span class="ring2"></span>
 </div>
 
+<header>
+  <div class="flourish">❀ ✿ ❀</div>
+  <h1>Shakila &amp; Isma Wedding RSVP</h1>
+  <p>We're getting married! Are you coming? Let us know below 💍</p>
+  <div class="flourish">❀ ✿ ❀</div>
+</header>
+
+<!-- 1. Guest Reply -->
+<section id="reply">
+  <h2>1. Guest Reply</h2>
+  <label for="name">Your name</label>
+  <input type="text" id="name" placeholder="e.g. Ahmad bin Ismail">
+  <label>Are you coming?</label>
+  <div class="choice-row">
+    <button type="button" class="choice" id="btnYes">Yes 🎉</button>
+    <button type="button" class="choice" id="btnNo">No 😢</button>
+  </div>
+  <label for="pax">How many adults are coming?</label>
+  <input type="number" id="pax" min="0" max="20" value="1">
+  <label for="paxKids">How many kids are coming?</label>
+  <input type="number" id="paxKids" min="0" max="20" value="0">
+  <p class="chosen-note" id="chosenNote"></p>
+  <button class="submit-btn" id="submitBtn">Send My Reply</button>
+</section>
+
+<!-- Host gate -->
+<section id="hostGate">
+  <h2>🔒 Host View</h2>
+  <p class="section-sub">Headcount and guest list are only for the host. Enter the host PIN to unlock.</p>
+  <label for="hostPin">Host PIN</label>
+  <input type="password" id="hostPin" inputmode="numeric" placeholder="Enter PIN">
+  <p class="chosen-note" id="pinNote"></p>
+  <button class="submit-btn" id="hostOpenBtn" style="margin-top:4px;">Unlock Host View</button>
+</section>
+
+<!-- 2. Current Headcount (host only) -->
+<section id="headcount" hidden>
+  <h2>2. Current Headcount</h2>
+  <div class="big-count" id="total">0</div>
+  <p class="count-note" id="totalNote">guests are coming</p>
+  <div class="kids-box">
+    <div class="big-count kids" id="totalKids">0</div>
+    <p class="count-note" id="totalKidsNote">kids are coming</p>
+  </div>
+  <button class="link-btn" id="hostCloseBtn">Hide host view</button>
+</section>
+
+<!-- 3. Guest List (host only) -->
+<section id="list" hidden>
+  <h2>3. Guest List</h2>
+  <ul id="guestList"></ul>
+</section>
+
 <script>
-  // ---- Sample data (Malaysia-specific, fictional) ----
-  const FEE = 80; // RM per house, per month
-  const houses = [
-    { id: 1, name: "No. 12, Jalan Melur 3", owner: "Encik Ahmad bin Ismail", paid: true },
-    { id: 2, name: "No. 7, Jalan Melur 5", owner: "Puan Siti Aminah", paid: false },
-    { id: 3, name: "No. 21, Jalan Cempaka 2", owner: "Mr. Rajesh Kumar", paid: false }
-  ];
+  // Start with no replies — headcount is zero until guests respond
+  let guests = [];
 
-  // This month's deadline: the 10th of the current month
-  const now = new Date();
-  const deadline = new Date(now.getFullYear(), now.getMonth(), 10);
-  const deadlineStr = deadline.toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric" });
-  const isPastDeadline = now > new Date(now.getFullYear(), now.getMonth(), 10, 23, 59, 59);
+  // Simple host gate — not real security, just keeps guest view tidy
+  const HOST_PIN = "1234";
 
-  let filter = "all";
-
-  function statusOf(h) {
-    if (h.paid) return "paid";
-    return isPastDeadline ? "late" : "unpaid";
-  }
-
-  function setFilter(f) {
-    filter = f;
-    document.getElementById("btn-show-all").classList.toggle("active", f === "all");
-    document.getElementById("btn-show-unpaid").classList.toggle("active", f === "unpaid");
-    render();
-  }
-
-  function togglePaid(id) {
-    const h = houses.find(x => x.id === id);
-    if (h) h.paid = !h.paid;
-    render();
-  }
+  let choice = null; // "yes" or "no"
+  const btnYes = document.getElementById("btnYes");
+  const btnNo = document.getElementById("btnNo");
+  const chosenNote = document.getElementById("chosenNote");
+  const nameInput = document.getElementById("name");
+  const paxInput = document.getElementById("pax");
+  const paxKidsInput = document.getElementById("paxKids");
 
   function render() {
-    // House list
-    const list = document.getElementById("house-list");
-    list.innerHTML = "";
-    let shown = 0;
-    houses.forEach(h => {
-      const st = statusOf(h);
-      if (filter === "unpaid" && h.paid) return;
-      shown++;
+    // Guest list
+    const listEl = document.getElementById("guestList");
+    listEl.innerHTML = "";
+    if (guests.length === 0) {
       const li = document.createElement("li");
-      const btn = document.createElement("button");
-      btn.className = "house-row";
-      btn.title = "Tap to mark " + (h.paid ? "unpaid" : "paid");
-      const name = document.createElement("span");
-      name.className = "house-name";
-      name.textContent = h.name;
-      const owner = document.createElement("span");
-      owner.className = "house-owner";
-      owner.textContent = h.owner + " — RM" + FEE + " per month";
-      btn.appendChild(name);
-      btn.appendChild(owner);
-
-      const dl = document.createElement("span");
-      dl.className = "deadline";
-      dl.textContent = "Deadline: " + deadlineStr;
-
-      const badge = document.createElement("span");
-      badge.className = "status-badge " + st;
-      badge.textContent = st === "paid" ? "PAID ✓" : (st === "late" ? "LATE!" : "UNPAID");
-
-      li.appendChild(btn);
-      li.appendChild(dl);
-      li.appendChild(badge);
-      list.appendChild(li);
+      li.textContent = "No replies yet — be the first to RSVP!";
+      listEl.appendChild(li);
+    }
+    guests.forEach(g => {
+      const li = document.createElement("li");
+      const left = document.createElement("div");
+      left.innerHTML =
+        '<span class="g-badge ' + (g.coming ? "yes" : "no") + '">' +
+        (g.coming ? "YES" : "NO") + "</span>" +
+        '<span class="g-name"></span>';
+      left.querySelector(".g-name").textContent = g.name;
+      const right = document.createElement("span");
+      right.className = "g-count";
+      right.textContent = g.coming
+        ? (g.adults + " adult" + (g.adults === 1 ? "" : "s") + ", " +
+           g.kids + " kid" + (g.kids === 1 ? "" : "s"))
+        : "—";
+      li.appendChild(left);
+      li.appendChild(right);
+      listEl.appendChild(li);
     });
-    if (shown === 0) {
-      const li = document.createElement("li");
-      li.textContent = "No houses to show — every house in this view is paid.";
-      list.appendChild(li);
-    }
-    document.getElementById("filter-note").textContent =
-      filter === "unpaid" ? "Showing unpaid houses only. Paid houses are hidden." : "Showing all houses.";
 
-    // Summary
-    const total = houses.length;
-    const paid = houses.filter(h => h.paid).length;
-    const unpaid = total - paid;
-    const late = houses.filter(h => statusOf(h) === "late").length;
-    document.getElementById("count-total").textContent = total;
-    document.getElementById("count-paid").textContent = paid;
-    document.getElementById("count-unpaid").textContent = unpaid;
-    document.getElementById("count-late").textContent = late;
+    // Headcount
+    const total = guests.reduce((s, g) => s + (g.coming ? g.adults : 0), 0);
+    const totalKids = guests.reduce((s, g) => s + (g.coming ? g.kids : 0), 0);
+    document.getElementById("total").textContent = total;
+    const yesCount = guests.filter(g => g.coming).length;
+    document.getElementById("totalNote").textContent =
+      total + (total === 1 ? " adult" : " adults") + " from " + yesCount +
+      (yesCount === 1 ? " reply" : " replies") + " • sample count";
+    document.getElementById("totalKids").textContent = totalKids;
+    document.getElementById("totalKidsNote").textContent =
+      totalKids + (totalKids === 1 ? " kid" : " kids") + " coming • sample count";
+  }
 
-    // Reminder
-    const unpaidHouses = houses.filter(h => !h.paid);
-    const box = document.getElementById("reminder-text");
-    if (unpaidHouses.length === 0) {
-      box.textContent = "All houses have paid this month. No reminder needed. Terima kasih!";
+  function setChoice(c) {
+    choice = c;
+    btnYes.classList.toggle("selected-yes", c === "yes");
+    btnNo.classList.toggle("selected-no", c === "no");
+    chosenNote.textContent = c === "yes" ? "Yay! You said YES 🎉"
+                          : c === "no" ? "Okay, you said NO 😢" : "";
+  }
+
+  btnYes.addEventListener("click", () => setChoice("yes"));
+  btnNo.addEventListener("click", () => setChoice("no"));
+
+  document.getElementById("submitBtn").addEventListener("click", () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    if (!choice) { chosenNote.textContent = "Please tap Yes or No first!"; return; }
+    let adults = parseInt(paxInput.value, 10) || 0;
+    let kids = parseInt(paxKidsInput.value, 10) || 0;
+    if (choice === "no") { adults = 0; kids = 0; }
+    if (choice === "yes" && adults + kids < 1) { paxInput.focus(); return; }
+    guests.unshift({ name: name, coming: choice === "yes", adults: adults, kids: kids });
+    render();
+    nameInput.value = "";
+    paxInput.value = 1;
+    paxKidsInput.value = 0;
+    setChoice(null);
+  });
+
+  // Host gate: show/hide headcount + guest list
+  const headcountSec = document.getElementById("headcount");
+  const listSec = document.getElementById("list");
+  const hostGateSec = document.getElementById("hostGate");
+
+  document.getElementById("hostOpenBtn").addEventListener("click", () => {
+    const pin = document.getElementById("hostPin").value.trim();
+    const pinNote = document.getElementById("pinNote");
+    if (pin === HOST_PIN) {
+      headcountSec.hidden = false;
+      listSec.hidden = false;
+      hostGateSec.hidden = true;
     } else {
-      const names = unpaidHouses.map(h => h.name).join(", ");
-      box.textContent =
-        "Assalamualaikum and good day,\n\n" +
-        "Dear residents of " + names + ",\n\n" +
-        "Our records show that the monthly maintenance fee of RM" + FEE +
-        " for " + deadline.toLocaleDateString("en-MY", { month: "long", year: "numeric" }) +
-        " has not been received yet. The payment deadline was " + deadlineStr + ".\n\n" +
-        "Kindly make your payment to the treasurer as soon as possible. Thank you for your cooperation.\n\n" +
-        "— Treasurer, Taman Melur Heights Residents Association";
+      pinNote.textContent = "Wrong PIN — please try again.";
     }
-  }
+  });
 
-  function copyReminder() {
-    const text = document.getElementById("reminder-text").textContent;
-    const note = document.getElementById("copy-note");
-    const done = () => { note.hidden = false; setTimeout(() => { note.hidden = true; }, 2000); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
-    } else {
-      fallbackCopy(text, done);
-    }
-  }
-  function fallbackCopy(text, done) {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); } catch (e) {}
-    document.body.removeChild(ta);
-    done();
-  }
-
-  function readReminder() {
-    const box = document.getElementById("reminder-text");
-    box.scrollIntoView({ behavior: "smooth", block: "center" });
-    box.style.background = "#fdf3dc";
-    setTimeout(() => { box.style.background = ""; }, 1500);
-  }
+  document.getElementById("hostCloseBtn").addEventListener("click", () => {
+    headcountSec.hidden = true;
+    listSec.hidden = true;
+    hostGateSec.hidden = false;
+  });
 
   render();
 </script>
