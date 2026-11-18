@@ -199,6 +199,7 @@
     <p class="count-note" id="totalKidsNote">kids are coming</p>
   </div>
   <button class="link-btn" id="hostCloseBtn">Hide host view</button>
+  <button class="link-btn" id="refreshBtn">Refresh replies</button>
 </section>
 
 <!-- 3. Guest List (host only) -->
@@ -208,7 +209,12 @@
 </section>
 
 <script>
-  // Start with no replies — headcount is zero until guests respond
+  // ==== BACKEND CONFIG ====
+  // Paste your Google Apps Script web app URL here (see setup guide).
+  // While it is empty, the app works in local-only mode (nothing saved).
+  const BACKEND_URL = "";
+
+  // Replies shown before anything loads from the backend
   let guests = [];
 
   // Simple host gate — not real security, just keeps guest view tidy
@@ -257,10 +263,40 @@
     const yesCount = guests.filter(g => g.coming).length;
     document.getElementById("totalNote").textContent =
       total + (total === 1 ? " adult" : " adults") + " from " + yesCount +
-      (yesCount === 1 ? " reply" : " replies") + " • sample count";
+      (yesCount === 1 ? " reply" : " replies") +
+      (BACKEND_URL ? "" : " • sample count");
     document.getElementById("totalKids").textContent = totalKids;
     document.getElementById("totalKidsNote").textContent =
-      totalKids + (totalKids === 1 ? " kid" : " kids") + " coming • sample count";
+      totalKids + (totalKids === 1 ? " kid" : " kids") + " coming" +
+      (BACKEND_URL ? "" : " • sample count");
+  }
+
+  // ==== BACKEND SYNC ====
+  async function loadReplies() {
+    if (!BACKEND_URL) return;
+    try {
+      const res = await fetch(BACKEND_URL + "?action=list");
+      const data = await res.json();
+      if (Array.isArray(data.guests)) {
+        guests = data.guests;
+        render();
+      }
+    } catch (e) { /* keep local state if backend unreachable */ }
+  }
+
+  async function saveReply(entry) {
+    if (!BACKEND_URL) return true;
+    try {
+      await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "add", reply: entry })
+      });
+      await loadReplies();
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   function setChoice(c) {
@@ -274,7 +310,7 @@
   btnYes.addEventListener("click", () => setChoice("yes"));
   btnNo.addEventListener("click", () => setChoice("no"));
 
-  document.getElementById("submitBtn").addEventListener("click", () => {
+  document.getElementById("submitBtn").addEventListener("click", async () => {
     const name = nameInput.value.trim();
     if (!name) { nameInput.focus(); return; }
     if (!choice) { chosenNote.textContent = "Please tap Yes or No first!"; return; }
@@ -282,12 +318,22 @@
     let kids = parseInt(paxKidsInput.value, 10) || 0;
     if (choice === "no") { adults = 0; kids = 0; }
     if (choice === "yes" && adults + kids < 1) { paxInput.focus(); return; }
-    guests.unshift({ name: name, coming: choice === "yes", adults: adults, kids: kids });
+    const entry = { name: name, coming: choice === "yes", adults: adults, kids: kids };
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    const ok = await saveReply(entry);
+    btn.disabled = false;
+    if (!ok && BACKEND_URL) {
+      chosenNote.textContent = "Could not reach the server — please try again.";
+      return;
+    }
+    if (!BACKEND_URL) guests.unshift(entry);
     render();
     nameInput.value = "";
     paxInput.value = 1;
     paxKidsInput.value = 0;
     setChoice(null);
+    chosenNote.textContent = "Terima kasih! Your reply has been received 💚";
   });
 
   // Host gate: show/hide headcount + guest list
@@ -312,6 +358,11 @@
     listSec.hidden = true;
     hostGateSec.hidden = false;
   });
+
+  document.getElementById("refreshBtn").addEventListener("click", loadReplies);
+
+  // Load live replies on open when backend is configured
+  loadReplies();
 
   render();
 </script>
