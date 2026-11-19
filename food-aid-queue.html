@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Aid Pickup Queue</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --text: #1e2430;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --ok: #16a34a;
+    --ok-bg: #dcfce7;
+    --full: #dc2626;
+    --full-bg: #fee2e2;
+    --warn: #d97706;
+    --warn-bg: #fef3c7;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding-bottom: 80px;
+  }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 20px 16px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 600; }
+  header p { font-size: .85rem; opacity: .85; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin: 10px 0 4px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    min-height: 52px;
+  }
+  .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .error { color: var(--full); font-size: .85rem; margin-top: 8px; font-weight: 600; }
+  .hint { color: var(--muted); font-size: .78rem; margin-top: 4px; }
+
+  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .slot {
+    padding: 12px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: #fff;
+    text-align: center;
+    cursor: pointer;
+    min-height: 64px;
+    font-size: .95rem;
+  }
+  .slot .time { font-weight: 700; }
+  .slot .status { font-size: .75rem; font-weight: 600; margin-top: 2px; }
+  .slot.available { border-color: var(--ok); }
+  .slot.available .status { color: var(--ok); }
+  .slot.full { background: var(--full-bg); border-color: var(--full); opacity: .8; cursor: not-allowed; }
+  .slot.full .status { color: var(--full); }
+  .slot.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .slot.selected .status { color: #dbeafe; }
+  .slot:disabled { cursor: not-allowed; }
+
+  .confirm {
+    text-align: center;
+    border: 2px solid var(--ok);
+    background: var(--ok-bg);
+  }
+  .queue-number { font-size: 3rem; font-weight: 800; color: var(--accent); line-height: 1.1; }
+  .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .k { color: var(--muted); }
+  .detail-row .v { font-weight: 600; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+  .badge.now { background: var(--warn-bg); color: var(--warn); }
+  .badge.ready { background: var(--ok-bg); color: var(--ok); }
+  .badge.waiting { background: #e5e7eb; color: var(--muted); }
+
+  .progress-bar { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin-top: 12px; }
+  .progress-bar .fill { height: 100%; background: var(--accent); transition: width .4s ease; }
+
+  footer { text-align: center; font-size: .75rem; color: var(--muted); padding: 12px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+// ---- In-memory data store (per session) ----
+const SLOT_HOURS = [10, 11, 12, 13, 14, 15, 16, 17];
+const SLOT_CAPACITY = 5;
+const QUEUE_START = 101;
+
+const store = {
+  requests: [],       // { id, familyName, members, phone, dietary, slotHour, queueNumber }
+  nextQueue: QUEUE_START,
+};
+
+function slotLabel(hour) {
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  const ampm = hour < 12 ? "AM" : "PM";
+  return `${h12}:00 ${ampm}`;
+}
+function todayLabel() {
+  return new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+}
+function slotCounts() {
+  const counts = {};
+  SLOT_HOURS.forEach(h => counts[h] = { taken: 0 });
+  store.requests.forEach(r => counts[r.slotHour].taken++);
+  return counts;
+}
+function queueAhead(myQueue) {
+  return store.requests.filter(r => r.queueNumber > myQueue && r.queueNumber < store.nextQueue).length;
+}
+
+// ---- "Now serving" simulation: advances every 45 seconds ----
+function useNowServing() {
+  const [serving, setServing] = useState(QUEUE_START - 1);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setServing(s => s < store.nextQueue - 1 ? s + 1 : s);
+    }, 45000);
+    return () => clearInterval(t);
+  }, []);
+  return serving;
+}
+
+function App() {
+  const [view, setView] = useState("form"); // form | confirmation | status
+  const [form, setForm] = useState({ familyName: "", members: "", phone: "", dietary: "" });
+  const [slotHour, setSlotHour] = useState(null);
+  const [error, setError] = useState("");
+  const [ticket, setTicket] = useState(null);
+  const [tick, setTick] = useState(0); // re-render for live counts
+  const serving = useNowServing();
+
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const counts = slotCounts();
+  const remaining = SLOT_CAPACITY - (slotHour != null ? counts[slotHour].taken : 0);
+
+  function submit(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.familyName.trim()) return setError("Please enter your family name.");
+    const members = parseInt(form.members, 10);
+    if (!members || members < 1 || members > 20) return setError("Please enter a valid number of family members (1–20).");
+    if (!/^[+\d][\d\s-]{6,}$/.test(form.phone.trim())) return setError("Please enter a valid contact phone number.");
+    if (slotHour == null) return setError("Please select a pickup time slot.");
+
+    const req = {
+      id: Date.now(),
+      familyName: form.familyName.trim(),
+      members,
+      phone: form.phone.trim(),
+      dietary: form.dietary.trim(),
+      slotHour,
+      queueNumber: store.nextQueue++,
+    };
+    store.requests.push(req);
+    setTicket(req);
+    setView("confirmation");
+  }
+
+  function reset() {
+    setForm({ familyName: "", members: "", phone: "", dietary: "" });
+    setSlotHour(null);
+    setTicket(null);
+    setView("form");
+  }
+
+  // ---- Status view data ----
+  const status = useMemo(() => {
+    if (!ticket) return null;
+    const ahead = Math.max(0, ticket.queueNumber - serving - 1);
+    const isTurn = serving >= ticket.queueNumber;
+    const nearTurn = !isTurn && ahead <= 2;
+    return { ahead, isTurn, nearTurn, progress: Math.min(100, Math.max(0, ((serving - QUEUE_START + 1) / (ticket.queueNumber - QUEUE_START + 1)) * 100)) };
+  }, [ticket, serving, tick]);
+
+  if (view === "confirmation" && ticket) {
+    return (
+      <div>
+        <Header />
+        <main>
+          <div className="card confirm">
+            <h2>✅ You're all set, {ticket.familyName.replace(/\s+family$/i, "")} family!</h2>
+            <div className="queue-number">#{ticket.queueNumber}</div>
+            <p className="hint">Your queue number</p>
+          </div>
+          <div className="card">
+            <h2>Pickup Details</h2>
+            <div className="detail-row"><span className="k">Pickup date</span><span className="v">{todayLabel()}</span></div>
+            <div className="detail-row"><span className="k">Pickup time</span><span className="v">{slotLabel(ticket.slotHour)}</span></div>
+            <div className="detail-row"><span className="k">Family members</span><span className="v">{ticket.members}</span></div>
+            {ticket.dietary && <div className="detail-row"><span className="k">Dietary needs</span><span className="v">{ticket.dietary}</span></div>}
+          </div>
+          <button className="btn" onClick={() => setView("status")}>Check My Queue Position</button>
+          <button className="btn secondary" onClick={reset}>Request Another Food Pack</button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (view === "status" && ticket && status) {
+    return (
+      <div>
+        <Header />
+        <main>
+          <div className="card" style={{ textAlign: "center" }}>
+            <h2>Queue Status</h2>
+            <div className="queue-number">#{ticket.queueNumber}</div>
+            <p className="hint">Your number &nbsp;·&nbsp; Today, {todayLabel()}</p>
+            <p style={{ marginTop: 10, fontWeight: 600 }}>
+              Now serving: <span style={{ color: "var(--accent)" }}>#{serving}</span>
+            </p>
+            <div className={status.isTurn ? "badge ready" : status.nearTurn ? "badge now" : "badge waiting"} style={{ marginTop: 10 }}>
+              {status.isTurn ? "It's your turn — please come to the counter!" : status.nearTurn ? "Almost your turn — get ready!" : `Waiting — ${status.ahead} ${status.ahead === 1 ? "family" : "families"} ahead of you`}
+            </div>
+            <div className="progress-bar"><div className="fill" style={{ width: status.progress + "%" }}></div></div>
+          </div>
+          <div className="card">
+            <h2>Your Pickup</h2>
+            <div className="detail-row"><span className="k">Pickup time</span><span className="v">{slotLabel(ticket.slotHour)}</span></div>
+            <div className="detail-row"><span className="k">Estimated wait</span><span className="v">{status.isTurn ? "Now" : `~${status.ahead * 5} min`}</span></div>
+          </div>
+          <button className="btn" onClick={() => setView("status")}>↻ Refresh Status</button>
+          <button className="btn secondary" onClick={reset}>Back to Request Form</button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // ---- Request form (default view) ----
+  return (
+    <div>
+      <Header />
+      <main>
+        <form className="card" onSubmit={submit}>
+          <h2>1. Request a Food Pack</h2>
+          <label htmlFor="familyName">Family name</label>
+          <input id="familyName" value={form.familyName}
+            onChange={e => setForm({ ...form, familyName: e.target.value })}
+            placeholder="e.g. The Ahmed family" autoComplete="name" />
+          <label htmlFor="members">Number of family members</label>
+          <input id="members" type="number" min="1" max="20" inputMode="numeric" value={form.members}
+            onChange={e => setForm({ ...form, members: e.target.value })}
+            placeholder="e.g. 4" />
+          <label htmlFor="phone">Contact phone number</label>
+          <input id="phone" type="tel" inputMode="tel" value={form.phone}
+            onChange={e => setForm({ ...form, phone: e.target.value })}
+            placeholder="e.g. +60 12-345 6789" autoComplete="tel" />
+          <label htmlFor="dietary">Special dietary requirements <span style={{ fontWeight: 400, color: "var(--muted)" }}>(optional)</span></label>
+          <textarea id="dietary" rows="2" value={form.dietary}
+            onChange={e => setForm({ ...form, dietary: e.target.value })}
+            placeholder="e.g. No nuts, halal, vegetarian"></textarea>
+        </form>
+
+        <div className="card">
+          <h2>2. Choose a Pickup Time</h2>
+          <p className="hint" style={{ marginBottom: 10 }}>Today, {todayLabel()} · Green means slots are open, red means full.</p>
+          <div className="slots" role="listbox" aria-label="Pickup time slots">
+            {SLOT_HOURS.map(h => {
+              const taken = counts[h].taken;
+              const full = taken >= SLOT_CAPACITY;
+              const selected = slotHour === h;
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  disabled={full}
+                  className={`slot ${full ? "full" : "available"} ${selected ? "selected" : ""}`}
+                  onClick={() => { setSlotHour(h); setError(""); }}
+                >
+                  <div className="time">{slotLabel(h)}</div>
+                  <div className="status">{selected ? "✓ Selected" : full ? "Full" : `${SLOT_CAPACITY - taken} left`}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {error && <p className="error" role="alert">⚠ {error}</p>}
+        <button className="btn" onClick={submit}>
+          Get My Queue Number
+        </button>
+        <p className="hint" style={{ textAlign: "center", marginTop: 8 }}>
+          {slotHour != null ? `${slotLabel(slotHour)} · ${remaining} slot${remaining === 1 ? "" : "s"} left` : "No pickup time selected yet"}
+        </p>
+        <footer>Food Aid Pickup Queue · No login needed</footer>
+      </main>
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header>
+      <h1>🍲 Food Aid Pickup Queue</h1>
+      <p>Request a food pack and get your pickup slot — no login needed</p>
+    </header>
+  );
+}
+
+function Footer() {
+  return <footer>Food Aid Pickup Queue · Keep this page open to track your queue</footer>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
